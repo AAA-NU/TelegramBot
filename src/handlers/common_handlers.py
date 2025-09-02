@@ -27,3 +27,9 @@ async def show_menu(message: Message, session: AsyncSession):
 async def process_help(message: Message):
     await message.answer(text=lexicon_ru.HELP_MESSAGE_TEXT)
 
+
+@router.callback_query(F.data == "menu")
+async def process_menu_callback(callback: CallbackQuery):
+    await callback.message.edit_text(text=lexicon_ru.START_MESSAGE_TEXT,
+                                     reply_markup=keyboards_ru.gen_start_keyboard())
+

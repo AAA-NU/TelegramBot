@@ -15,6 +15,7 @@ from aiogram.utils.token import TokenValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from src.keyboards import keyboards_ru
 from src.lexicon import lexicon_ru
 
 router = Router()
@@ -22,20 +23,24 @@ router = Router()
 
 @router.callback_query(F.data == "coworking")
 async def process_coworking_callback(callback: CallbackQuery):
-    await callback.message.edit_text(text=lexicon_ru.COWORKING_TEXT)
+    await callback.message.edit_text(text=lexicon_ru.COWORKING_TEXT,
+                                     reply_markup=keyboards_ru.gen_coworking_keyboard())
 
 
 @router.callback_query(F.data == "nvk_links")
 async def process_nvk_links_callback(callback: CallbackQuery):
-    await callback.message.edit_text(text=lexicon_ru.NVK_LINKS_TEXT)
+    await callback.message.edit_text(text=lexicon_ru.NVK_LINKS_TEXT,
+                                     reply_markup=keyboards_ru.gen_nvk_links_keyboard())
 
 
 @router.callback_query(F.data == "check_in")
 async def process_check_in_callback(callback: CallbackQuery):
-    await callback.message.edit_text(text=lexicon_ru.CHECK_IN_TEXT)
+    await callback.message.edit_text(text=lexicon_ru.CHECK_IN_TEXT,
+                                     reply_markup=keyboards_ru.gen_check_in_keyboard())
 
 
 @router.callback_query(F.data == "report")
 async def process_report_callback(callback: CallbackQuery):
-    await callback.message.edit_text(text=lexicon_ru.REPORT_TEXT)
+    await callback.message.edit_text(text=lexicon_ru.REPORT_TEXT,
+                                     reply_markup=keyboards_ru.gen_report_keyboard())
 

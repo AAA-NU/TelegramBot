@@ -7,6 +7,9 @@ START_KEYBOARD_DICT = {
     "⚠️ Ой, тут что-то сломалось": "report"
 }
 
+MENU_BTN_TEXT = "🔙Меню"
+MENU_BTN_CALLBACK = "menu"
+
 
 COWORKING_TEXT = """<b>🏢 Аренда коворкинга</b>
 
