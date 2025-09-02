@@ -20,6 +20,22 @@ from src.lexicon import lexicon_ru
 router = Router()
 
 
-@router.message(Command(commands="ai_mode"))
-async def process_ai_mode_command(message: Message):
-    await message.answer(text=lexicon_ru.AI_CHOICE_TEXT)
+@router.callback_query(F.data == "coworking")
+async def process_coworking_callback(callback: CallbackQuery):
+    await callback.message.edit_text(text=lexicon_ru.COWORKING_TEXT)
+
+
+@router.callback_query(F.data == "nvk_links")
+async def process_nvk_links_callback(callback: CallbackQuery):
+    await callback.message.edit_text(text=lexicon_ru.NVK_LINKS_TEXT)
+
+
+@router.callback_query(F.data == "check_in")
+async def process_check_in_callback(callback: CallbackQuery):
+    await callback.message.edit_text(text=lexicon_ru.CHECK_IN_TEXT)
+
+
+@router.callback_query(F.data == "report")
+async def process_report_callback(callback: CallbackQuery):
+    await callback.message.edit_text(text=lexicon_ru.REPORT_TEXT)
+

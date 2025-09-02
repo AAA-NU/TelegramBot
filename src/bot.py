@@ -22,9 +22,6 @@ async def main():
               default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher(storage=storage)
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
     db_middleware = DBMiddleware(session_maker=async_session_maker)
     dp.update.middleware(db_middleware)
 
