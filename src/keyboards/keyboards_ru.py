@@ -3,7 +3,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from src.backend.spaces_controller import CoworkingModel, RoomModel
 from src.callbacks.callback_data import FAQCallback, CoworkingCallback, DateCallback, TimeCallback, RoomsCallback, \
-    EndRoomCallback, GroupReportCallback
+    EndRoomCallback, GroupReportCallback, FAQCallback2
 from src.lexicon import lexicon_ru
 from src.callbacks import callback_data
 
@@ -83,7 +83,7 @@ def gen_faq_keyboard_2(first_callback: str):
     builder = InlineKeyboardBuilder()
     for btn_text, btn_callback in chosen_dict.items():
         builder.row(InlineKeyboardButton(text=btn_text,
-                                         callback_data=btn_callback))
+                                         callback_data=FAQCallback2(faq=btn_callback).pack()))
     builder.row(menu_btn)
     return builder.as_markup()
 

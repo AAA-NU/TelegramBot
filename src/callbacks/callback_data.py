@@ -32,3 +32,7 @@ class EndRoomCallback(CallbackData, prefix="end_room"):
 
 class GroupReportCallback(CallbackData, prefix="group_report"):
     user_id: int
+
+
+class FAQCallback2(CallbackData, prefix="faq2"):
+    faq: str

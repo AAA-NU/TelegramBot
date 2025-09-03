@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from src.backend.qr_controller import VerifyApiController
-from src.callbacks.callback_data import FAQCallback, CoworkingCallback, DateCallback, TimeCallback
+from src.callbacks.callback_data import FAQCallback, CoworkingCallback, DateCallback, TimeCallback, FAQCallback2
 from src.keyboards import keyboards_ru
 from src.lexicon import lexicon_ru
 from src.states.bot_states import ReportStates
@@ -165,6 +165,13 @@ async def process_faq_2_callback(callback: CallbackQuery, callback_data: FAQCall
     await callback.message.edit_text(text=lexicon_ru.FAQ_TEXT,
                                      reply_markup=keyboards_ru.gen_faq_keyboard_2(first_callback=callback_data.faq))
 
+
+@router.callback_query(FAQCallback2.filter())
+async def process_faq_3_callback(callback: CallbackQuery, callback_data: FAQCallback2):
+    ans = lexicon_ru.SERVICE_FAQ_DICT_2.get(callback_data.faq)
+    if not ans:
+        ans = lexicon_ru.NEXT_TIME_ANSWER_TEXT
+    await callback.message.edit_text(text=ans, reply_markup=keyboards_ru.menu_keyboard)
 
 @router.callback_query(CoworkingCallback.filter())
 async def process_coworking_callback_2(callback: CallbackQuery, callback_data: CoworkingCallback, state: FSMContext):
