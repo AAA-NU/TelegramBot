@@ -28,3 +28,7 @@ class RoomsCallback(CallbackData, prefix="rooms"):
 
 class EndRoomCallback(CallbackData, prefix="end_room"):
     room_id: str
+
+
+class GroupReportCallback(CallbackData, prefix="group_report"):
+    user_id: int

@@ -3,7 +3,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from src.backend.spaces_controller import CoworkingModel, RoomModel
 from src.callbacks.callback_data import FAQCallback, CoworkingCallback, DateCallback, TimeCallback, RoomsCallback, \
-    EndRoomCallback
+    EndRoomCallback, GroupReportCallback
 from src.lexicon import lexicon_ru
 from src.callbacks import callback_data
 
@@ -110,4 +110,11 @@ def gen_booking_end_keyboard(room_id):
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Завершить бронирование",
                                      callback_data=EndRoomCallback(room_id=room_id).pack()))
+    return builder.as_markup()
+
+
+def gen_report_group_keyboard(user_id: int):
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=lexicon_ru.REPORT_GROUP_BTN,
+                                     callback_data=GroupReportCallback(user_id=user_id).pack()))
     return builder.as_markup()

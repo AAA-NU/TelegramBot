@@ -13,11 +13,12 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.state import State, default_state, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.token import TokenValidationError
+from requests import HTTPError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from src.callbacks.callback_data import FAQCallback, CoworkingCallback, DateCallback, TimeCallback, RoomsCallback, \
-    EndRoomCallback
+    EndRoomCallback, GroupReportCallback
 from src.keyboards import keyboards_ru
 from src.lexicon import lexicon_ru
 from src.states.bot_states import ReportStates, AdminMailingState
@@ -69,9 +70,11 @@ class RoleFilter(BaseFilter):
         # Проверяем, есть ли вообще пользователь в событии
         if not event.from_user:
             return False
-
-        # Делаем запрос в наше API прямо внутри фильтра
-        user_from_api = BackendUsersController.get_user_by_tg_id(str(event.from_user.id))
+        try:
+            # Делаем запрос в наше API прямо внутри фильтра
+            user_from_api = BackendUsersController.get_user_by_tg_id(str(event.from_user.id))
+        except HTTPError:
+            return False
         print(user_from_api)
         # Если пользователь найден и его роль совпадает с разрешенной - фильтр пройден
         if user_from_api and user_from_api.role == self.allowed_role:
@@ -95,7 +98,7 @@ async def process_start_for_admin(message: Message):
 @router.callback_query(F.data == "mailing")
 async def process_mailing_callback(callback: CallbackQuery, state: FSMContext):
     await state.set_state(AdminMailingState.wait_message)
-    await callback.message.edit_text(text=lexicon_ru.MAILING_TEXT)
+    await callback.message.edit_text(text=lexicon_ru.MAILING_TEXT, reply_markup=keyboards_ru.menu_keyboard)
 
 
 @router.message(StateFilter(AdminMailingState.wait_message))
@@ -107,7 +110,7 @@ async def process_mailing_message(message: Message):
         except TelegramForbiddenError:
             pass
 
-    await message.answer(text=lexicon_ru.SUCCESS_MAILING)
+    await message.answer(text=lexicon_ru.SUCCESS_MAILING, reply_markup=keyboards_ru.menu_keyboard)
 
 
 @router.callback_query(F.data == "booking_room")
@@ -129,12 +132,12 @@ async def process_rooms_callback(callback: CallbackQuery, callback_data: RoomsCa
 async def process_end_room_callback(callback: CallbackQuery, callback_data: EndRoomCallback):
     SpacesApiController.update_room_booking(room_id=callback_data.room_id,
                                             is_booked=False, booked_by="")
-    await callback.message.edit_text(text=lexicon_ru.END_ROOM_BOOKING_TEXT)
+    await callback.message.edit_text(text=lexicon_ru.END_ROOM_BOOKING_TEXT, reply_markup=keyboards_ru.menu_keyboard)
 
 
 @router.callback_query(F.data == "admin_check_in")
 async def process_admin_check_in_callback(callback: CallbackQuery):
-    await callback.message.edit_text(text=lexicon_ru.CHECK_IN_ADMIN_TEXT)
+    await callback.message.edit_text(text=lexicon_ru.CHECK_IN_ADMIN_TEXT, reply_markup=keyboards_ru.menu_keyboard)
 
 
 @router.callback_query(F.data == "menu")
@@ -142,3 +145,10 @@ async def process_menu_callback(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text(text=lexicon_ru.START_ADMIN_MESSAGE_TEXT,
                                      reply_markup=keyboards_ru.gen_start_admin_keyboard())
+
+
+@router.callback_query(GroupReportCallback.filter())
+async def process_group_report_callback(callback: CallbackQuery, callback_data: GroupReportCallback, bot: Bot):
+    await bot.send_message(chat_id=callback_data.user_id, text=lexicon_ru.REPORT_GROUP_PROCESSED_TEXT,
+                           reply_markup=keyboards_ru.menu_keyboard)
+    await callback.message.edit_text(text=lexicon_ru.SUCCESS_REPORT)

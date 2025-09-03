@@ -13,6 +13,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.state import State, default_state, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.token import TokenValidationError
+from requests import HTTPError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
@@ -64,10 +65,11 @@ class RoleFilter(BaseFilter):
         # Проверяем, есть ли вообще пользователь в событии
         if not event.from_user:
             return False
-
-        # Делаем запрос в наше API прямо внутри фильтра
-        user_from_api = BackendUsersController.get_user_by_tg_id(str(event.from_user.id))
-
+        try:
+            # Делаем запрос в наше API прямо внутри фильтра
+            user_from_api = BackendUsersController.get_user_by_tg_id(str(event.from_user.id))
+        except HTTPError:
+            return False
         # Если пользователь найден и его роль совпадает с разрешенной - фильтр пройден
         if user_from_api and user_from_api.role == self.allowed_role:
             return True
@@ -145,8 +147,10 @@ async def process_report_callback(callback: CallbackQuery, state: FSMContext):
 
 
 @router.message(F.photo, StateFilter(ReportStates.wait_message_with_photo))
-async def process_report_photo(message: Message):
+async def process_report_photo(message: Message, bot: Bot):
     await message.send_copy(chat_id=ADMIN_GROUP_ID) # Тут можно добавить функцию обработки(то есть админ нажимает, что репорт обработан и пользователю приходит уведомление.)
+    await bot.send_message(chat_id=ADMIN_GROUP_ID, text=lexicon_ru.REPORT_GROUP_TEXT,
+                           reply_markup=keyboards_ru.gen_report_group_keyboard(user_id=message.from_user.id))
     await message.answer(text="Успешно, твоя заявка отправлена!", reply_markup=keyboards_ru.menu_keyboard)
 
 
@@ -189,5 +193,5 @@ async def process_time_callback(callback: CallbackQuery, callback_data: TimeCall
     cowo_time = callback_data.time.replace(".", ":")
     time_to_booking = f"{cowo_date} {cowo_time}"
     SpacesApiController.add_coworking_booking_time(coworking_id=cowo_id, time=time_to_booking)
-    await callback.message.edit_text(text=lexicon_ru.SUCCESS_BOOKING,
+    await callback.message.edit_text(text=lexicon_ru.SUCCESS_BOOKING.format(cw_id=cowo_id, time=time_to_booking),
                                      reply_markup=keyboards_ru.menu_keyboard)
