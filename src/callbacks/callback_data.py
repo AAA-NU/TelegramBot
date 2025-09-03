@@ -20,3 +20,11 @@ class DateCallback(CallbackData, prefix="date"):
 
 class TimeCallback(CallbackData, prefix="time"):
     time: str
+
+
+class RoomsCallback(CallbackData, prefix="rooms"):
+    room_id: str
+
+
+class EndRoomCallback(CallbackData, prefix="end_room"):
+    room_id: str

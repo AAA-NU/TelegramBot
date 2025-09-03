@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from cachetools import TTLCache
 
 
-
 class DBMiddleware(BaseMiddleware):
     def __init__(self, session_maker: async_sessionmaker):
         self.session_maker = session_maker

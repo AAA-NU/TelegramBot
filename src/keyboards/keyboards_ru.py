@@ -1,8 +1,9 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from src.backend.spaces_controller import CoworkingModel
-from src.callbacks.callback_data import FAQCallback, CoworkingCallback, DateCallback, TimeCallback
+from src.backend.spaces_controller import CoworkingModel, RoomModel
+from src.callbacks.callback_data import FAQCallback, CoworkingCallback, DateCallback, TimeCallback, RoomsCallback, \
+    EndRoomCallback
 from src.lexicon import lexicon_ru
 from src.callbacks import callback_data
 
@@ -87,5 +88,26 @@ def gen_faq_keyboard_2(first_callback: str):
     return builder.as_markup()
 
 
+def gen_start_admin_keyboard():
+    builder = InlineKeyboardBuilder()
+    for btn_text, btn_callback in lexicon_ru.START_ADMIN_KEYBOARD_DICT.items():
+        builder.row(InlineKeyboardButton(text=btn_text,
+                                         callback_data=btn_callback))
+    return builder.as_markup()
 
 
+def gen_rooms_keyboard(rooms: list[RoomModel]):
+    builder = InlineKeyboardBuilder()
+    for room_model in rooms:
+        if not room_model.is_booked:
+            builder.row(InlineKeyboardButton(text=f"Аудитория {room_model.id}",
+                                             callback_data=RoomsCallback(room_id=room_model.id).pack()))
+    builder.row(menu_btn)
+    return builder.as_markup()
+
+
+def gen_booking_end_keyboard(room_id):
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Завершить бронирование",
+                                     callback_data=EndRoomCallback(room_id=room_id).pack()))
+    return builder.as_markup()
