@@ -1,6 +1,7 @@
+import asyncio
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, CallbackQuery
+from aiogram.types import TelegramObject, CallbackQuery, Message
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from cachetools import TTLCache
 

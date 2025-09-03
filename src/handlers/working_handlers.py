@@ -18,6 +18,9 @@ from sqlalchemy.orm import Session
 from src.keyboards import keyboards_ru
 from src.lexicon import lexicon_ru
 
+
+ADMIN_GROUP_ID = -4904031171
+
 router = Router()
 
 
@@ -44,3 +47,8 @@ async def process_report_callback(callback: CallbackQuery):
     await callback.message.edit_text(text=lexicon_ru.REPORT_TEXT,
                                      reply_markup=keyboards_ru.gen_report_keyboard())
 
+
+@router.message(F.photo)
+async def process_report_photo(message: Message):
+    await message.send_copy(chat_id=ADMIN_GROUP_ID) # Тут можно добавить функцию обработки(то есть админ нажимает, что репорт обработан и пользователю приходит уведомление.)
+    await message.answer(text="Успешно, твоя заявка отправлена!", reply_markup=keyboards_ru.menu_keyboard)

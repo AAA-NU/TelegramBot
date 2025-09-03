@@ -6,6 +6,8 @@ from src.callbacks import callback_data
 menu_btn = InlineKeyboardButton(text=lexicon_ru.MENU_BTN_TEXT,
                                 callback_data=lexicon_ru.MENU_BTN_CALLBACK)
 
+menu_keyboard = InlineKeyboardMarkup(inline_keyboard=[[menu_btn]])
+
 
 def gen_start_keyboard():
     builder = InlineKeyboardBuilder()
