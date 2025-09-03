@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, date
 import asyncio
 
 from aiogram import Router, Bot, F, BaseMiddleware
@@ -67,7 +68,8 @@ class RoleFilter(BaseFilter):
             return False
         try:
             # Делаем запрос в наше API прямо внутри фильтра
-            user_from_api = BackendUsersController.get_user_by_tg_id(str(event.from_user.id))
+            user_from_api = BackendUsersController.get_user_by_tg_id(
+                str(event.from_user.id))
         except HTTPError:
             return False
         # Если пользователь найден и его роль совпадает с разрешенной - фильтр пройден
@@ -77,7 +79,7 @@ class RoleFilter(BaseFilter):
         # Во всех остальных случаях - не пропускаем
         return False
 
-from datetime import datetime, timedelta, date
+
 def string_to_date_strptime(date_string: str) -> date:
     """
     Преобразует строку с датой в формате 'ГГГГ-ММ-ДД'
@@ -103,6 +105,7 @@ router = Router()
 router.message.filter(RoleFilter("student"))
 router.callback_query.filter(RoleFilter("student"))
 
+
 @router.message(CommandStart(deep_link=True, magic=F.args))
 async def process_start_with_deeplink(message: Message, command: CommandObject):
     deeplink_param = command.args
@@ -125,18 +128,21 @@ async def process_coworking_callback(callback: CallbackQuery):
     coworkings = SpacesApiController.get_coworkings()
     await callback.message.edit_text(text=lexicon_ru.COWORKING_TEXT,
                                      reply_markup=keyboards_ru.gen_coworking_keyboard(coworkings=coworkings))
+    await callback.answer()
 
 
 @router.callback_query(F.data == "nvk_links")
 async def process_nvk_links_callback(callback: CallbackQuery):
     await callback.message.edit_text(text=lexicon_ru.NVK_LINKS_TEXT,
                                      reply_markup=keyboards_ru.gen_nvk_links_keyboard())
+    await callback.answer()
 
 
 @router.callback_query(F.data == "check_in")
 async def process_check_in_callback(callback: CallbackQuery):
     await callback.message.edit_text(text=lexicon_ru.CHECK_IN_TEXT,
                                      reply_markup=keyboards_ru.gen_check_in_keyboard())
+    await callback.answer()
 
 
 @router.callback_query(F.data == "report")
@@ -144,11 +150,13 @@ async def process_report_callback(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ReportStates.wait_message_with_photo)
     await callback.message.edit_text(text=lexicon_ru.REPORT_TEXT,
                                      reply_markup=keyboards_ru.gen_report_keyboard())
+    await callback.answer()
 
 
 @router.message(F.photo, StateFilter(ReportStates.wait_message_with_photo))
 async def process_report_photo(message: Message, bot: Bot):
-    await message.send_copy(chat_id=ADMIN_GROUP_ID) # Тут можно добавить функцию обработки(то есть админ нажимает, что репорт обработан и пользователю приходит уведомление.)
+    # Тут можно добавить функцию обработки(то есть админ нажимает, что репорт обработан и пользователю приходит уведомление.)
+    await message.send_copy(chat_id=ADMIN_GROUP_ID)
     await bot.send_message(chat_id=ADMIN_GROUP_ID, text=lexicon_ru.REPORT_GROUP_TEXT,
                            reply_markup=keyboards_ru.gen_report_group_keyboard(user_id=message.from_user.id))
     await message.answer(text="Успешно, твоя заявка отправлена!", reply_markup=keyboards_ru.menu_keyboard)
@@ -158,12 +166,14 @@ async def process_report_photo(message: Message, bot: Bot):
 async def process_faq_callback(callback: CallbackQuery):
     await callback.message.edit_text(text=lexicon_ru.FAQ_TEXT,
                                      reply_markup=keyboards_ru.gen_faq_keyboard())
+    await callback.answer()
 
 
 @router.callback_query(FAQCallback.filter())
 async def process_faq_2_callback(callback: CallbackQuery, callback_data: FAQCallback):
     await callback.message.edit_text(text=lexicon_ru.FAQ_TEXT,
                                      reply_markup=keyboards_ru.gen_faq_keyboard_2(first_callback=callback_data.faq))
+    await callback.answer()
 
 
 @router.callback_query(FAQCallback2.filter())
@@ -172,12 +182,15 @@ async def process_faq_3_callback(callback: CallbackQuery, callback_data: FAQCall
     if not ans:
         ans = lexicon_ru.NEXT_TIME_ANSWER_TEXT
     await callback.message.edit_text(text=ans, reply_markup=keyboards_ru.menu_keyboard)
+    ans
+
 
 @router.callback_query(CoworkingCallback.filter())
 async def process_coworking_callback_2(callback: CallbackQuery, callback_data: CoworkingCallback, state: FSMContext):
     await state.update_data(cowo_id=callback_data.id)
     await callback.message.edit_text(text=lexicon_ru.CHOICE_DATE_TEXT,
                                      reply_markup=keyboards_ru.gen_coworking_keyboard_2(dates=get_next_seven_days()))
+    await callback.answer()
 
 
 @router.callback_query(DateCallback.filter())
@@ -190,6 +203,7 @@ async def process_date_callback(callback: CallbackQuery, callback_data: DateCall
                                                                           date_param=string_to_date_strptime(date_string=cowo_date))
     await callback.message.edit_text(text=lexicon_ru.CHOICE_TIME_TEXT,
                                      reply_markup=keyboards_ru.gen_coworking_keyboard_3(times=coworking_response.available_times))
+    await callback.answer()
 
 
 @router.callback_query(TimeCallback.filter())
@@ -199,6 +213,8 @@ async def process_time_callback(callback: CallbackQuery, callback_data: TimeCall
     cowo_date = data.get("cowo_date")
     cowo_time = callback_data.time.replace(".", ":")
     time_to_booking = f"{cowo_date} {cowo_time}"
-    SpacesApiController.add_coworking_booking_time(coworking_id=cowo_id, time=time_to_booking)
+    SpacesApiController.add_coworking_booking_time(
+        coworking_id=cowo_id, time=time_to_booking)
     await callback.message.edit_text(text=lexicon_ru.SUCCESS_BOOKING.format(cw_id=cowo_id, time=time_to_booking),
                                      reply_markup=keyboards_ru.menu_keyboard)
+    await callback.answer()

@@ -33,7 +33,8 @@ async def process_start_with_deeplink(message: Message, command: CommandObject):
 
 @router.message(CommandStart())
 async def show_menu(message: Message, state: FSMContext):
-    BackendUsersController.create_user(tgID=str(message.from_user.id), language="ru")
+    BackendUsersController.create_user(
+        tgID=str(message.from_user.id), language="ru")
     await state.clear()
     await message.answer(text=lexicon_ru.START_MESSAGE_TEXT,
                          reply_markup=keyboards_ru.gen_start_keyboard())
@@ -49,4 +50,4 @@ async def process_menu_callback(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text(text=lexicon_ru.START_MESSAGE_TEXT,
                                      reply_markup=keyboards_ru.gen_start_keyboard())
-
+    await callback.answer()
