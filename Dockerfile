@@ -29,4 +29,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD python src/bot.py
+CMD python bot.py
