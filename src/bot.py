@@ -13,7 +13,6 @@ from src.database.database import engine, Base
 from src.database import models
 
 
-
 async def main():
     storage = MemoryStorage()
 
@@ -30,8 +29,8 @@ async def main():
     dp.update.middleware(throttling_middleware)
 
     dp.include_router(admin_handlers.router)
-    dp.include_router(common_handlers.router)
     dp.include_router(student_handlers.router)
+    dp.include_router(common_handlers.router)
     dp.include_router(other_handlers.router)
 
     await dp.start_polling(bot)

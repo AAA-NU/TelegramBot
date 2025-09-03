@@ -1,6 +1,7 @@
 import asyncio
 
 from aiogram import Router, Bot, F, BaseMiddleware
+from aiogram.dispatcher.event.bases import CancelHandler
 from aiogram.exceptions import TelegramUnauthorizedError, TelegramForbiddenError
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import Message, TelegramObject
@@ -47,12 +48,42 @@ class AdminAccessMiddleware(BaseMiddleware):
             data['user'] = user_from_api
             return await handler(event, data)
 
-        return
+        raise CancelHandler()
+
+
+# filters.py
+
+from typing import Union
+from aiogram.filters import BaseFilter
+from aiogram.types import Message, CallbackQuery
+
+
+# Предположим, ваш контроллер находится здесь
+# from a_folder.controllers import BackendUsersController
+
+class RoleFilter(BaseFilter):
+    def __init__(self, allowed_role: str):
+        self.allowed_role = allowed_role
+
+    async def __call__(self, event: Union[Message, CallbackQuery]) -> bool:
+        # Проверяем, есть ли вообще пользователь в событии
+        if not event.from_user:
+            return False
+
+        # Делаем запрос в наше API прямо внутри фильтра
+        user_from_api = BackendUsersController.get_user_by_tg_id(str(event.from_user.id))
+        print(user_from_api)
+        # Если пользователь найден и его роль совпадает с разрешенной - фильтр пройден
+        if user_from_api and user_from_api.role == self.allowed_role:
+            return True
+
+        # Во всех остальных случаях - не пропускаем
+        return False
 
 
 router = Router()
-router.message.middleware(AdminAccessMiddleware())
-router.callback_query.middleware(AdminAccessMiddleware())
+router.message.filter(RoleFilter("admin"))
+router.callback_query.filter(RoleFilter("admin"))
 
 
 @router.message(CommandStart())

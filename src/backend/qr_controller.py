@@ -40,6 +40,8 @@ class VerifyApiController:
         return VerifyResponse(**response_data)
 
 
+VerifyApiController.set_base_url("http://93.189.231.250:8082/api")
+
 # Пример использования:
 if __name__ == "__main__":
     # Установка базового URL

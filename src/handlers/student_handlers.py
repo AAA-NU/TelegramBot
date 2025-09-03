@@ -1,11 +1,12 @@
 import asyncio
 
 from aiogram import Router, Bot, F, BaseMiddleware
+from aiogram.dispatcher.event.bases import CancelHandler
 from aiogram.exceptions import TelegramUnauthorizedError
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import Message, TelegramObject
 from aiogram.types import ChatMemberUpdated, Chat, CallbackQuery
-from aiogram.filters import ChatMemberUpdatedFilter, Command, StateFilter, CommandStart
+from aiogram.filters import ChatMemberUpdatedFilter, Command, StateFilter, CommandStart, BaseFilter, CommandObject
 from aiogram.enums import ChatMemberStatus, ChatType
 from aiogram.filters.chat_member_updated import IS_NOT_MEMBER, ADMINISTRATOR
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -15,11 +16,12 @@ from aiogram.utils.token import TokenValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from src.backend.qr_controller import VerifyApiController
 from src.callbacks.callback_data import FAQCallback, CoworkingCallback, DateCallback, TimeCallback
 from src.keyboards import keyboards_ru
 from src.lexicon import lexicon_ru
 from src.states.bot_states import ReportStates
-from typing import Callable, Dict, Awaitable, Any
+from typing import Callable, Dict, Awaitable, Any, Union
 from src.backend.users_controller import BackendUsersController
 from src.backend.spaces_controller import SpacesApiController
 
@@ -54,40 +56,24 @@ def get_next_seven_days():
     return date_list
 
 
-class StudentAccessMiddleware(BaseMiddleware):
-    async def __call__(
-            self,
-            handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
-            event: TelegramObject,
-            data: Dict[str, Any]
-    ) -> Any:
-        # Получаем объект пользователя aiogram из данных события
-        event_user = data.get('event_from_user')
-        if not event_user:
-            # Событие без пользователя (например, опрос в канале), пропускаем
-            return await handler(event, data)
+class RoleFilter(BaseFilter):
+    def __init__(self, allowed_role: str):
+        self.allowed_role = allowed_role
 
-        # Запрашиваем пользователя из нашего API
-        user_from_api = BackendUsersController.get_user_by_tg_id(event_user.id)
+    async def __call__(self, event: Union[Message, CallbackQuery]) -> bool:
+        # Проверяем, есть ли вообще пользователь в событии
+        if not event.from_user:
+            return False
 
-        # ГЛАВНАЯ ЛОГИКА ФИЛЬТРАЦИИ
-        if user_from_api and user_from_api.role == 'student':
-            # Если пользователь - студент, обогащаем данные и передаем управление дальше
-            data['user'] = user_from_api
-            return await handler(event, data)
+        # Делаем запрос в наше API прямо внутри фильтра
+        user_from_api = BackendUsersController.get_user_by_tg_id(str(event.from_user.id))
 
-        # Если пользователь не студент или не найден в API,
-        # обработка на этом роутере прекращается.
-        # Мы НЕ вызываем handler.
-        # Опционально: можно ответить пользователю.
-        if isinstance(event, Message):
-            await event.answer("К сожалению, доступ к этому разделу есть только у студентов.")
-        elif isinstance(event, CallbackQuery):
-            await event.answer("Доступ запрещен", show_alert=True)
+        # Если пользователь найден и его роль совпадает с разрешенной - фильтр пройден
+        if user_from_api and user_from_api.role == self.allowed_role:
+            return True
 
-        # Так как мы не вызвали await handler(...), aiogram не будет
-        # искать обработчики для этого события в данном роутере.
-        return
+        # Во всех остальных случаях - не пропускаем
+        return False
 
 from datetime import datetime, timedelta, date
 def string_to_date_strptime(date_string: str) -> date:
@@ -111,12 +97,25 @@ def string_to_date_strptime(date_string: str) -> date:
     return datetime_object.date()
 
 
-
-
-
 router = Router()
-router.message.middleware(StudentAccessMiddleware())
-router.callback_query.middleware(StudentAccessMiddleware())
+router.message.filter(RoleFilter("student"))
+router.callback_query.filter(RoleFilter("student"))
+
+@router.message(CommandStart(deep_link=True, magic=F.args))
+async def process_start_with_deeplink(message: Message, command: CommandObject):
+    deeplink_param = command.args
+    verify_result = VerifyApiController.verify_uuid(uuid=deeplink_param)
+    if verify_result.valid:
+        await message.answer(text=lexicon_ru.SUCCESS_CHECK_IN)
+    else:
+        await message.answer(text=lexicon_ru.UNSUCCESS_CHECK_IN)
+
+
+@router.message(CommandStart())
+async def show_menu(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(text=lexicon_ru.START_MESSAGE_TEXT,
+                         reply_markup=keyboards_ru.gen_start_keyboard())
 
 
 @router.callback_query(F.data == "coworking")
