@@ -1,3 +1,6 @@
+from aiogram.types import Message, CallbackQuery
+from aiogram.filters import BaseFilter
+from typing import Union
 import asyncio
 
 from aiogram import Router, Bot, F, BaseMiddleware
@@ -54,10 +57,6 @@ class AdminAccessMiddleware(BaseMiddleware):
 
 # filters.py
 
-from typing import Union
-from aiogram.filters import BaseFilter
-from aiogram.types import Message, CallbackQuery
-
 
 # Предположим, ваш контроллер находится здесь
 # from a_folder.controllers import BackendUsersController
@@ -72,7 +71,8 @@ class RoleFilter(BaseFilter):
             return False
         try:
             # Делаем запрос в наше API прямо внутри фильтра
-            user_from_api = BackendUsersController.get_user_by_tg_id(str(event.from_user.id))
+            user_from_api = BackendUsersController.get_user_by_tg_id(
+                str(event.from_user.id))
         except HTTPError:
             return False
         print(user_from_api)
@@ -99,6 +99,7 @@ async def process_start_for_admin(message: Message):
 async def process_mailing_callback(callback: CallbackQuery, state: FSMContext):
     await state.set_state(AdminMailingState.wait_message)
     await callback.message.edit_text(text=lexicon_ru.MAILING_TEXT, reply_markup=keyboards_ru.menu_keyboard)
+    await callback.answer()
 
 
 @router.message(StateFilter(AdminMailingState.wait_message))
@@ -118,6 +119,7 @@ async def process_booking_room_callback(callback: CallbackQuery):
     rooms = SpacesApiController.get_rooms()
     await callback.message.edit_text(text=lexicon_ru.BOOKING_ROOM_TEXT,
                                      reply_markup=keyboards_ru.gen_rooms_keyboard(rooms=rooms))
+    await callback.answer()
 
 
 @router.callback_query(RoomsCallback.filter())
@@ -126,6 +128,7 @@ async def process_rooms_callback(callback: CallbackQuery, callback_data: RoomsCa
                                             booked_by=str(callback.from_user.id))
     await callback.message.edit_text(text=lexicon_ru.SUCCESS_BOOKING_ROOM.format(id=callback_data.room_id),
                                      reply_markup=keyboards_ru.gen_booking_end_keyboard(room_id=callback_data.room_id))
+    await callback.answer()
 
 
 @router.callback_query(EndRoomCallback.filter())
@@ -133,11 +136,13 @@ async def process_end_room_callback(callback: CallbackQuery, callback_data: EndR
     SpacesApiController.update_room_booking(room_id=callback_data.room_id,
                                             is_booked=False, booked_by="")
     await callback.message.edit_text(text=lexicon_ru.END_ROOM_BOOKING_TEXT, reply_markup=keyboards_ru.menu_keyboard)
+    await callback.answer()
 
 
 @router.callback_query(F.data == "admin_check_in")
 async def process_admin_check_in_callback(callback: CallbackQuery):
     await callback.message.edit_text(text=lexicon_ru.CHECK_IN_ADMIN_TEXT, reply_markup=keyboards_ru.menu_keyboard)
+    await callback.answer()
 
 
 @router.callback_query(F.data == "menu")
@@ -145,6 +150,7 @@ async def process_menu_callback(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text(text=lexicon_ru.START_ADMIN_MESSAGE_TEXT,
                                      reply_markup=keyboards_ru.gen_start_admin_keyboard())
+    await callback.answer()
 
 
 @router.callback_query(GroupReportCallback.filter())
@@ -152,3 +158,4 @@ async def process_group_report_callback(callback: CallbackQuery, callback_data: 
     await bot.send_message(chat_id=callback_data.user_id, text=lexicon_ru.REPORT_GROUP_PROCESSED_TEXT,
                            reply_markup=keyboards_ru.menu_keyboard)
     await callback.message.edit_text(text=lexicon_ru.SUCCESS_REPORT)
+    await callback.answer()
