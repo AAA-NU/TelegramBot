@@ -9,3 +9,14 @@ from aiogram.filters.callback_data import CallbackData
 class FAQCallback(CallbackData, prefix="faq"):
     faq: str
 
+
+class CoworkingCallback(CallbackData, prefix="cowo"):
+    id: str
+
+
+class DateCallback(CallbackData, prefix="date"):
+    date: str
+
+
+class TimeCallback(CallbackData, prefix="time"):
+    time: str

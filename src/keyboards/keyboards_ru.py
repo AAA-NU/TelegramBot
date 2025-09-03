@@ -1,7 +1,8 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from src.callbacks.callback_data import FAQCallback
+from src.backend.spaces_controller import CoworkingModel
+from src.callbacks.callback_data import FAQCallback, CoworkingCallback, DateCallback, TimeCallback
 from src.lexicon import lexicon_ru
 from src.callbacks import callback_data
 
@@ -19,12 +20,32 @@ def gen_start_keyboard():
     return builder.as_markup()
 
 
-def gen_coworking_keyboard():
+def gen_coworking_keyboard(coworkings: list[CoworkingModel]):
     builder = InlineKeyboardBuilder()
-    # Все остальные кнопки добавляются тут
+    for coworking_model in coworkings:
+        builder.row(InlineKeyboardButton(text=f"Коворкинг номер {coworking_model.id}",
+                                         callback_data=CoworkingCallback(id=coworking_model.id).pack()))
     builder.row(menu_btn)
     return builder.as_markup()
 
+
+def gen_coworking_keyboard_2(dates: list[str]):
+    builder = InlineKeyboardBuilder()
+    for date in dates:
+        builder.row(InlineKeyboardButton(text=date,
+                                         callback_data=DateCallback(date=date).pack()))
+    builder.row(menu_btn)
+    return builder.as_markup()
+
+
+def gen_coworking_keyboard_3(times: list[str]):
+    builder = InlineKeyboardBuilder()
+    for time in times:
+        builder.row(InlineKeyboardButton(text=time,
+                                         callback_data=TimeCallback(time=time.replace(":", ".")).pack()))
+    builder.adjust(3)
+    builder.row(menu_btn)
+    return builder.as_markup()
 
 def gen_nvk_links_keyboard():
     builder = InlineKeyboardBuilder()
@@ -64,3 +85,7 @@ def gen_faq_keyboard_2(first_callback: str):
                                          callback_data=btn_callback))
     builder.row(menu_btn)
     return builder.as_markup()
+
+
+
+

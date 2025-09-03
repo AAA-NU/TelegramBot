@@ -15,13 +15,43 @@ from aiogram.utils.token import TokenValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from src.callbacks.callback_data import FAQCallback, CoworkingCallback, DateCallback, TimeCallback
 from src.keyboards import keyboards_ru
 from src.lexicon import lexicon_ru
 from src.states.bot_states import ReportStates
 from typing import Callable, Dict, Awaitable, Any
 from src.backend.users_controller import BackendUsersController
+from src.backend.spaces_controller import SpacesApiController
 
 ADMIN_GROUP_ID = -4904031171
+
+
+def get_next_seven_days():
+    """
+    Возвращает список из 7 строк с датами в формате 'ГГГГ-ММ-ДД',
+    начиная с сегодняшнего дня.
+    """
+    # Создаем пустой список, куда будем добавлять даты
+    date_list = []
+
+    # Получаем сегодняшнюю дату
+    today = date.today()
+
+    # Запускаем цикл, который повторится 7 раз (для 7 дней)
+    for i in range(7):
+        # К сегодняшней дате прибавляем смещение в днях (от 0 до 6)
+        # timedelta(days=i) создает объект "промежуток времени в i дней"
+        current_date = today + timedelta(days=i)
+
+        # Форматируем полученную дату в строку нужного формата 'ГГГГ-ММ-ДД'
+        # %Y - год (4 цифры), %m - месяц (2 цифры), %d - день (2 цифры)
+        formatted_date = current_date.strftime("%Y-%m-%d")
+
+        # Добавляем отформатированную строку в наш список
+        date_list.append(formatted_date)
+
+    # Возвращаем готовый список
+    return date_list
 
 
 class StudentAccessMiddleware(BaseMiddleware):
@@ -59,6 +89,30 @@ class StudentAccessMiddleware(BaseMiddleware):
         # искать обработчики для этого события в данном роутере.
         return
 
+from datetime import datetime, timedelta, date
+def string_to_date_strptime(date_string: str) -> date:
+    """
+    Преобразует строку с датой в формате 'ГГГГ-ММ-ДД'
+    в объект datetime.date, используя strptime.
+
+    Аргументы:
+        date_string: Строка с датой (например, '2023-10-27').
+
+    Возвращает:
+        Объект datetime.date.
+    """
+    # %Y, %m, %d должны точно соответствовать формату строки
+    format_code = "%Y-%m-%d"
+
+    # datetime.strptime создает объект datetime (с временем 00:00:00)
+    datetime_object = datetime.strptime(date_string, format_code)
+
+    # Возвращаем из него только часть с датой
+    return datetime_object.date()
+
+
+
+
 
 router = Router()
 router.message.middleware(StudentAccessMiddleware())
@@ -67,8 +121,9 @@ router.callback_query.middleware(StudentAccessMiddleware())
 
 @router.callback_query(F.data == "coworking")
 async def process_coworking_callback(callback: CallbackQuery):
+    coworkings = SpacesApiController.get_coworkings()
     await callback.message.edit_text(text=lexicon_ru.COWORKING_TEXT,
-                                     reply_markup=keyboards_ru.gen_coworking_keyboard())
+                                     reply_markup=keyboards_ru.gen_coworking_keyboard(coworkings=coworkings))
 
 
 @router.callback_query(F.data == "nvk_links")
@@ -100,3 +155,40 @@ async def process_report_photo(message: Message):
 async def process_faq_callback(callback: CallbackQuery):
     await callback.message.edit_text(text=lexicon_ru.FAQ_TEXT,
                                      reply_markup=keyboards_ru.gen_faq_keyboard())
+
+
+@router.callback_query(FAQCallback.filter())
+async def process_faq_2_callback(callback: CallbackQuery, callback_data: FAQCallback):
+    await callback.message.edit_text(text=lexicon_ru.FAQ_TEXT,
+                                     reply_markup=keyboards_ru.gen_faq_keyboard_2(first_callback=callback_data.faq))
+
+
+@router.callback_query(CoworkingCallback.filter())
+async def process_coworking_callback_2(callback: CallbackQuery, callback_data: CoworkingCallback, state: FSMContext):
+    await state.update_data(cowo_id=callback_data.id)
+    await callback.message.edit_text(text=lexicon_ru.CHOICE_DATE_TEXT,
+                                     reply_markup=keyboards_ru.gen_coworking_keyboard_2(dates=get_next_seven_days()))
+
+
+@router.callback_query(DateCallback.filter())
+async def process_date_callback(callback: CallbackQuery, callback_data: DateCallback, state: FSMContext):
+    data = await state.get_data()
+    cowo_id = data.get("cowo_id")
+    cowo_date = callback_data.date
+    await state.update_data(cowo_date=cowo_date)
+    coworking_response = SpacesApiController.get_coworking_available_time(coworking_id=cowo_id,
+                                                                          date_param=string_to_date_strptime(date_string=cowo_date))
+    await callback.message.edit_text(text=lexicon_ru.CHOICE_TIME_TEXT,
+                                     reply_markup=keyboards_ru.gen_coworking_keyboard_3(times=coworking_response.available_times))
+
+
+@router.callback_query(TimeCallback.filter())
+async def process_time_callback(callback: CallbackQuery, callback_data: TimeCallback, state: FSMContext):
+    data = await state.get_data()
+    cowo_id = data.get("cowo_id")
+    cowo_date = data.get("cowo_date")
+    cowo_time = callback_data.time.replace(".", ":")
+    time_to_booking = f"{cowo_date} {cowo_time}"
+    SpacesApiController.add_coworking_booking_time(coworking_id=cowo_id, time=time_to_booking)
+    await callback.message.edit_text(text=lexicon_ru.SUCCESS_BOOKING,
+                                     reply_markup=keyboards_ru.menu_keyboard)

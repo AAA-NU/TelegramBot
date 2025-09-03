@@ -33,8 +33,6 @@ async def main():
     dp.include_router(student_handlers.router)
     dp.include_router(other_handlers.router)
 
-
-
     await dp.start_polling(bot)
 
 if __name__ == '__main__':

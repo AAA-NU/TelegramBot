@@ -1,6 +1,6 @@
 import requests
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 
 @dataclass
@@ -207,6 +207,9 @@ class SpacesApiController:
 
         response_data = response.json()
         return AddBookingTime(**response_data)
+
+
+SpacesApiController.set_base_url("http://93.189.231.250:8081/api")
 
 
 # Пример использования:
